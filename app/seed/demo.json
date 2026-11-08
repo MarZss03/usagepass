@@ -753,9 +753,476 @@
       "licenseId": "LIC-20261108-72CR9X",
       "createdAt": "2026-11-08T01:40:41.628Z",
       "recorded": true
+    },
+    {
+      "id": "Q-20261108-1C9QK0",
+      "workId": "spring-poster",
+      "brand": "Northfield Coffee",
+      "request": "Paid ads on Instagram and TikTok in Canada and the US for three months, and recut it down to 15 seconds.",
+      "ai": {
+        "source": "gemini",
+        "model": "gemini-3.5-flash",
+        "reason": null,
+        "ms": 4554,
+        "summary": "The brand wants to run paid ads of the work on Instagram and TikTok in Canada and the US for three months with a recut modification."
+      },
+      "interpretation": {
+        "summary": "The brand wants to run paid ads of the work on Instagram and TikTok in Canada and the US for three months with a recut modification.",
+        "summaryEvidence": "",
+        "platforms": [
+          "instagram",
+          "tiktok"
+        ],
+        "platformsEvidence": "Instagram and TikTok",
+        "paid": true,
+        "paidEvidence": "Paid ads",
+        "durationDays": 90,
+        "durationEvidence": "three months",
+        "territories": [
+          "CA",
+          "US"
+        ],
+        "territoryEvidence": "Canada and the US",
+        "edits": "recut",
+        "editsEvidence": "recut it down to 15 seconds",
+        "outOfHome": false,
+        "oohEvidence": "",
+        "exclusive": false,
+        "exclusiveEvidence": "",
+        "excluded": [],
+        "unclear": []
+      },
+      "lines": [
+        {
+          "key": "base",
+          "label": "Base license",
+          "amount": 20000,
+          "evidence": null,
+          "clauseId": "1",
+          "clauseTitle": "Base license",
+          "clauseText": "One work, posted unpaid on the licensee’s own channels for 12 months."
+        },
+        {
+          "key": "paid",
+          "label": "Paid ads, 90 days · Instagram and TikTok",
+          "amount": 8000,
+          "qty": 1,
+          "evidence": "Paid ads",
+          "clauseId": "3",
+          "clauseTitle": "Paid media",
+          "clauseText": "Paid placement on any listed platform, $80 per 90 days."
+        },
+        {
+          "key": "territory-US",
+          "label": "Extra territory: United States",
+          "amount": 3000,
+          "evidence": "Canada and the US",
+          "clauseId": "4",
+          "clauseTitle": "Territory",
+          "clauseText": "Canada included. Each additional country $30."
+        },
+        {
+          "key": "edits",
+          "label": "Recrop or recut",
+          "amount": 4000,
+          "evidence": "recut it down to 15 seconds",
+          "clauseId": "6",
+          "clauseTitle": "Edits",
+          "clauseText": "Caption and on-image text changes included. Recrops, recuts and colour changes $40."
+        }
+      ],
+      "refused": [],
+      "review": [],
+      "total": 35000,
+      "currency": "USD",
+      "conflicts": [
+        {
+          "key": "ines-recut",
+          "restriction": "Recutting or re-editing the voiceover",
+          "kind": "use",
+          "creatorId": "ines",
+          "creator": "Ines Okafor",
+          "role": "Voice artist",
+          "component": "voiceover",
+          "evidence": "recut it down to 15 seconds",
+          "options": [
+            {
+              "key": "keep",
+              "variant": {
+                "drop": [
+                  "ines-recut"
+                ],
+                "silent": []
+              },
+              "title": "Keep Ines’s voiceover",
+              "summary": "Leave out the part Ines does not allow. Everyone stays on the license.",
+              "total": 31000,
+              "payable": true,
+              "parties": 3
+            },
+            {
+              "key": "without",
+              "variant": {
+                "drop": [],
+                "silent": [
+                  "ines"
+                ]
+              },
+              "title": "Remove the voiceover",
+              "summary": "Keep everything you asked for without Ines’s voiceover. Ines is not on the license; the split becomes Maya 77.8%, Tomás 22.2%.",
+              "total": 32000,
+              "payable": true,
+              "parties": 2
+            }
+          ]
+        }
+      ],
+      "split": [
+        {
+          "id": "maya",
+          "name": "Maya Chen",
+          "role": "Lead designer",
+          "component": "artwork",
+          "pct": 70,
+          "basePct": 70,
+          "approved": {
+            "version": 3,
+            "at": "2026-11-06T15:12:00Z"
+          }
+        },
+        {
+          "id": "tomas",
+          "name": "Tomás Reyes",
+          "role": "Animator",
+          "component": "animation",
+          "pct": 20,
+          "basePct": 20,
+          "approved": {
+            "version": 3,
+            "at": "2026-11-06T16:40:00Z"
+          }
+        },
+        {
+          "id": "ines",
+          "name": "Ines Okafor",
+          "role": "Voice artist",
+          "component": "voiceover",
+          "pct": 10,
+          "basePct": 10,
+          "approved": {
+            "version": 3,
+            "at": "2026-11-07T09:05:00Z"
+          }
+        }
+      ],
+      "variant": {
+        "drop": [],
+        "silent": []
+      },
+      "payable": false,
+      "licenseId": null,
+      "createdAt": "2026-11-08T22:45:01.274Z",
+      "recorded": true
+    },
+    {
+      "id": "Q-20261108-6YN33U",
+      "workId": "spring-poster",
+      "brand": "Northfield Coffee",
+      "request": "Paid ads on Instagram and TikTok in Canada and the US for three months, and recut it down to 15 seconds.",
+      "ai": {
+        "source": "gemini",
+        "model": "gemini-3.5-flash",
+        "reason": null,
+        "ms": 4554,
+        "summary": "The brand wants to run paid ads of the work on Instagram and TikTok in Canada and the US for three months with a recut modification."
+      },
+      "interpretation": {
+        "summary": "The brand wants to run paid ads of the work on Instagram and TikTok in Canada and the US for three months with a recut modification.",
+        "summaryEvidence": "",
+        "platforms": [
+          "instagram",
+          "tiktok"
+        ],
+        "platformsEvidence": "Instagram and TikTok",
+        "paid": true,
+        "paidEvidence": "Paid ads",
+        "durationDays": 90,
+        "durationEvidence": "three months",
+        "territories": [
+          "CA",
+          "US"
+        ],
+        "territoryEvidence": "Canada and the US",
+        "edits": "recut",
+        "editsEvidence": "recut it down to 15 seconds",
+        "outOfHome": false,
+        "oohEvidence": "",
+        "exclusive": false,
+        "exclusiveEvidence": "",
+        "excluded": [],
+        "unclear": []
+      },
+      "lines": [
+        {
+          "key": "base",
+          "label": "Base license",
+          "amount": 20000,
+          "evidence": null,
+          "clauseId": "1",
+          "clauseTitle": "Base license",
+          "clauseText": "One work, posted unpaid on the licensee’s own channels for 12 months."
+        },
+        {
+          "key": "paid",
+          "label": "Paid ads, 90 days · Instagram and TikTok",
+          "amount": 8000,
+          "qty": 1,
+          "evidence": "Paid ads",
+          "clauseId": "3",
+          "clauseTitle": "Paid media",
+          "clauseText": "Paid placement on any listed platform, $80 per 90 days."
+        },
+        {
+          "key": "territory-US",
+          "label": "Extra territory: United States",
+          "amount": 3000,
+          "evidence": "Canada and the US",
+          "clauseId": "4",
+          "clauseTitle": "Territory",
+          "clauseText": "Canada included. Each additional country $30."
+        }
+      ],
+      "refused": [
+        {
+          "key": "edits",
+          "label": "Recrop or recut",
+          "reason": "Left out to keep Ines Okafor’s voiceover: recutting or re-editing the voiceover is not allowed.",
+          "evidence": "recut it down to 15 seconds",
+          "owner": "ines"
+        }
+      ],
+      "review": [],
+      "total": 31000,
+      "currency": "USD",
+      "conflicts": [],
+      "split": [
+        {
+          "id": "maya",
+          "name": "Maya Chen",
+          "role": "Lead designer",
+          "component": "artwork",
+          "pct": 70,
+          "basePct": 70,
+          "approved": {
+            "version": 3,
+            "at": "2026-11-06T15:12:00Z"
+          }
+        },
+        {
+          "id": "tomas",
+          "name": "Tomás Reyes",
+          "role": "Animator",
+          "component": "animation",
+          "pct": 20,
+          "basePct": 20,
+          "approved": {
+            "version": 3,
+            "at": "2026-11-06T16:40:00Z"
+          }
+        },
+        {
+          "id": "ines",
+          "name": "Ines Okafor",
+          "role": "Voice artist",
+          "component": "voiceover",
+          "pct": 10,
+          "basePct": 10,
+          "approved": {
+            "version": 3,
+            "at": "2026-11-07T09:05:00Z"
+          }
+        }
+      ],
+      "variant": {
+        "drop": [
+          "ines-recut"
+        ],
+        "silent": []
+      },
+      "payable": true,
+      "licenseId": "LIC-20261108-CWWS91",
+      "createdAt": "2026-11-08T22:45:11.710Z",
+      "parentId": "Q-20261108-1C9QK0",
+      "choice": {
+        "conflict": "ines-recut",
+        "option": "keep",
+        "title": "Keep Ines’s voiceover",
+        "creator": "Ines Okafor",
+        "restriction": "Recutting or re-editing the voiceover"
+      },
+      "recorded": true
     }
   ],
   "licenses": [
+    {
+      "id": "LIC-20261108-CWWS91",
+      "quoteId": "Q-20261108-6YN33U",
+      "workId": "spring-poster",
+      "brand": "Northfield Coffee",
+      "request": "Paid ads on Instagram and TikTok in Canada and the US for three months, and recut it down to 15 seconds.",
+      "grants": [
+        {
+          "label": "Base license",
+          "clauseId": "1",
+          "amount": 20000
+        },
+        {
+          "label": "Paid ads, 90 days · Instagram and TikTok",
+          "clauseId": "3",
+          "amount": 8000
+        },
+        {
+          "label": "Extra territory: United States",
+          "clauseId": "4",
+          "amount": 3000
+        }
+      ],
+      "notGranted": [
+        {
+          "label": "Recrop or recut"
+        }
+      ],
+      "total": 31000,
+      "currency": "USD",
+      "payMode": "split",
+      "termsVersion": 3,
+      "choice": {
+        "conflict": "ines-recut",
+        "option": "keep",
+        "title": "Keep Ines’s voiceover",
+        "creator": "Ines Okafor",
+        "restriction": "Recutting or re-editing the voiceover"
+      },
+      "notParty": [],
+      "collaborators": [
+        {
+          "id": "maya",
+          "name": "Maya Chen",
+          "role": "Lead designer",
+          "pct": 70,
+          "gross": 21700,
+          "approved": {
+            "version": 3,
+            "at": "2026-11-06T15:12:00Z"
+          },
+          "status": "PAID",
+          "amount": "210.41",
+          "captureId": "7D389201R6690433B"
+        },
+        {
+          "id": "tomas",
+          "name": "Tomás Reyes",
+          "role": "Animator",
+          "pct": 20,
+          "gross": 6200,
+          "approved": {
+            "version": 3,
+            "at": "2026-11-06T16:40:00Z"
+          },
+          "status": "PAID",
+          "amount": "59.90",
+          "captureId": "5XU885058A1022241"
+        },
+        {
+          "id": "ines",
+          "name": "Ines Okafor",
+          "role": "Voice artist",
+          "pct": 10,
+          "gross": 3100,
+          "approved": {
+            "version": 3,
+            "at": "2026-11-07T09:05:00Z"
+          },
+          "status": "PAID",
+          "amount": "29.80",
+          "captureId": "4F3038719J380184R"
+        }
+      ],
+      "status": "ACTIVE",
+      "orderId": "06803790BA618970N",
+      "captures": {
+        "4F3038719J380184R": {
+          "status": "COMPLETED",
+          "amount": "31.00",
+          "fee": "1.20",
+          "net": "29.80",
+          "reason": null,
+          "source": "webhook"
+        },
+        "5XU885058A1022241": {
+          "status": "COMPLETED",
+          "amount": "62.00",
+          "fee": "2.10",
+          "net": "59.90",
+          "reason": null,
+          "source": "webhook"
+        },
+        "7D389201R6690433B": {
+          "status": "COMPLETED",
+          "amount": "217.00",
+          "fee": "6.59",
+          "net": "210.41",
+          "reason": null,
+          "source": "webhook"
+        }
+      },
+      "payoutBatchId": null,
+      "history": [
+        {
+          "at": "2026-11-08T22:45:14.260Z",
+          "event": "checkout",
+          "from": "AWAITING_PAYMENT",
+          "to": "AWAITING_PAYMENT",
+          "note": "Order for $310.00 created"
+        },
+        {
+          "at": "2026-11-08T22:51:08.649Z",
+          "event": "capture response",
+          "from": "AWAITING_PAYMENT",
+          "to": "ACTIVE",
+          "note": "3/3 captured"
+        },
+        {
+          "at": "2026-11-08T22:51:26.797Z",
+          "event": "PAYMENT.CAPTURE.COMPLETED",
+          "from": "ACTIVE",
+          "to": "ACTIVE",
+          "note": "3/3 captured"
+        },
+        {
+          "at": "2026-11-08T22:51:26.917Z",
+          "event": "PAYMENT.CAPTURE.COMPLETED",
+          "from": "ACTIVE",
+          "to": "ACTIVE",
+          "note": "3/3 captured"
+        },
+        {
+          "at": "2026-11-08T22:51:27.593Z",
+          "event": "PAYMENT.CAPTURE.COMPLETED",
+          "from": "ACTIVE",
+          "to": "ACTIVE",
+          "note": "3/3 captured"
+        }
+      ],
+      "createdAt": "2026-11-08T22:45:14.260Z",
+      "updatedAt": "2026-11-08T22:51:27.593Z",
+      "lastEvent": {
+        "type": "PAYMENT.CAPTURE.COMPLETED",
+        "id": "WH-46832155XR0218711-1S569864CY778351S",
+        "at": "2026-11-08T22:51:27.593Z"
+      },
+      "recorded": true
+    },
     {
       "id": "LIC-20261108-72CR9X",
       "quoteId": "Q-20261108-XK7Z15",
