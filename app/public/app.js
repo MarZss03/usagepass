@@ -1,4 +1,5 @@
 // UsagePass front end. No framework: a hash router, string templates, and one live stream per license.
+import { initExplain, explainRoute } from './explain.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -144,10 +145,25 @@ function ledgerHTML(collabs, { payMode, total, live, fees = 0 }) {
       : paid ? `${I.check}Received ${payMode === 'split' ? 'directly from the buyer, after PayPal fees' : 'by PayPal Payouts'}`
         : sending ? '<span class="dot live"></span>Payout sent, waiting for PayPal'
           : c.status && c.status !== 'WAITING' ? esc(c.status.toLowerCase()) : '<span class="dot"></span>Waits for the payment';
-    return `<li><span class="who"><b>${esc(c.name)}</b> <span>· ${esc(c.role)} · ${c.pct}%</span></span><span class="money">${amount}</span><span class="st ${paid ? 'paid' : ''}">${st}</span></li>`;
+    return `<li data-collab="${esc(c.id)}"><span class="who"><b>${esc(c.name)}</b> <span>· ${esc(c.role)} · ${c.pct}%</span></span><span class="money">${amount}</span><span class="st ${paid ? 'paid' : ''}">${st}</span></li>`;
   });
   if (live && fees > 0) rows.push(`<li><span class="who"><b>PayPal fees</b> <span>· kept by PayPal</span></span><span class="money">${usd(fees)}</span></li>`);
   return `<div class="ledger-wrap"><h2>Who gets paid</h2><ul class="ledger" style="margin-top:8px">${rows.join('')}</ul></div>`;
+}
+
+// The total ticks up once the last line has landed, like a register adding the lines above.
+function countUp(el, cents, delay = 0) {
+  if (!el) return;
+  el.textContent = usd(0);
+  setTimeout(() => {
+    const t0 = performance.now();
+    const step = (t) => {
+      const k = Math.min(1, (t - t0) / 650);
+      el.textContent = usd(Math.round(cents * (1 - Math.pow(1 - k, 4))));
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, delay);
 }
 
 // ---------- evidence highlighting ----------
@@ -261,7 +277,10 @@ async function viewRequest(id) {
     const btn = $('button[type="submit"]', form);
     btn.disabled = true;
     btn.innerHTML = '<span class="spin" aria-hidden="true"></span> Reading…';
-    $('[data-reading]', main).hidden = false;
+    const reading = $('[data-reading]', main);
+    reading.innerHTML = `<p>Reading your words against ${esc(w.studio)}’s rate card…</p><p class="sweep" aria-hidden="true">${esc(form.request.value.trim())}</p>`;
+    reading.hidden = false;
+    reading.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' });
     try {
       const q = await api(`/api/works/${w.id}/quotes`, { method: 'POST', body: { brand: form.brand.value, request: form.request.value } });
       sessionStorage.setItem('fresh', q.id);
@@ -327,6 +346,7 @@ async function viewQuote(id, params) {
     new IntersectionObserver(([e]) => bar.classList.toggle('away', e.isIntersecting)).observe(inflow);
   }
   wireEvidence(main);
+  if (fresh && !reduced && q.total > 0) countUp($('.terms .total span:last-child', main), q.total, 120 + (q.lines.length + q.refused.length + q.review.length) * 90);
   $$('[data-pay]', main).forEach((b) => b.addEventListener('click', async (e) => {
     const btn = $('.pay [data-pay]', main);
     e.currentTarget.disabled = true;
@@ -392,6 +412,15 @@ async function viewLicense(id, params) {
     $('[data-ledger]', main).innerHTML = ledgerHTML(next.collaborators, { payMode: next.payMode, total: next.total, live: true, fees: feesOf(next) });
     $('[data-hist]', main).innerHTML = historyHTML(next);
     if (prev && next.history.length > prev.history.length) $$('[data-history] li', main).slice(0, next.history.length - prev.history.length).forEach((li) => li.classList.add('new'));
+    // A share that just arrived gets stamped.
+    for (const c of next.collaborators) {
+      const was = prev?.collaborators.find((p) => p.id === c.id)?.status;
+      if (c.status !== 'PAID' || (prev ? was === 'PAID' : !replay)) continue;
+      const row = $(`[data-collab="${CSS.escape(c.id)}"]`, main);
+      if (!row) continue;
+      if (!prev) row.style.setProperty('--stamp-delay', `${1500 + next.collaborators.indexOf(c) * 160}ms`);
+      row.classList.add('stamped');
+    }
     setProof(main, next.status);
     const acts = $('[data-actions]', main);
     acts.innerHTML = next.status === 'AWAITING_PAYMENT' ? `<a class="btn" href="#/quotes/${next.quoteId}">Back to the quote</a>`
@@ -447,33 +476,45 @@ function rowLinks() {
 // ---------- router ----------
 
 const routes = [
-  [/^#?\/?$/, () => viewWorks(), 'works'],
-  [/^#\/works$/, () => viewWorks(), 'works'],
-  [/^#\/works\/([\w-]+)$/, (m) => viewWork(m[1]), 'works'],
-  [/^#\/request\/([\w-]+)$/, (m) => viewRequest(m[1]), 'requests'],
-  [/^#\/requests$/, () => viewRequests(), 'requests'],
-  [/^#\/quotes\/([\w-]+)$/, (m, p) => viewQuote(m[1], p), 'requests'],
-  [/^#\/licenses$/, () => viewLicenses(), 'licenses'],
-  [/^#\/licenses\/([\w-]+)$/, (m, p) => viewLicense(m[1], p), 'licenses'],
+  [/^#?\/?$/, () => viewWorks(), 'works', 'works'],
+  [/^#\/works$/, () => viewWorks(), 'works', 'works'],
+  [/^#\/works\/([\w-]+)$/, (m) => viewWork(m[1]), 'works', 'work'],
+  [/^#\/request\/([\w-]+)$/, (m) => viewRequest(m[1]), 'requests', 'request'],
+  [/^#\/requests$/, () => viewRequests(), 'requests', 'requests'],
+  [/^#\/quotes\/([\w-]+)$/, (m, p) => viewQuote(m[1], p), 'requests', 'quote'],
+  [/^#\/licenses$/, () => viewLicenses(), 'licenses', 'licenses'],
+  [/^#\/licenses\/([\w-]+)$/, (m, p) => viewLicense(m[1], p), 'licenses', 'license'],
 ];
 
+// Fetch first, then swap inside a view transition so the old page cross-fades into the new one.
 async function router() {
   stream?.close();
   stream = null;
   const [path, query] = (location.hash || '#/works').split('?');
   const params = new URLSearchParams(query || '');
-  for (const [rx, view, nav] of routes) {
+  for (const [rx, view, nav, key] of routes) {
     const m = path.match(rx);
     if (!m) continue;
-    $$('[data-nav]').forEach((a) => a.toggleAttribute('aria-current', a.dataset.nav === nav) || a.removeAttribute('aria-current'));
+    $$('[data-nav]').forEach((a) => a.removeAttribute('aria-current'));
     $(`[data-nav="${nav}"]`)?.setAttribute('aria-current', 'page');
-    try {
-      await view(m, params);
-    } catch (e) {
-      main.innerHTML = `<section class="page"><h1>That page could not load</h1><p class="lede">${esc(e.message)}</p><p style="margin-top:18px"><a class="btn" href="#/works">Back to works</a></p></section>`;
-    }
+    const render = async () => {
+      try {
+        await view(m, params);
+      } catch (e) {
+        main.innerHTML = `<section class="page"><h1>That page could not load</h1><p class="lede">${esc(e.message)}</p><p style="margin-top:18px"><a class="btn" href="#/works">Back to works</a></p></section>`;
+      }
+      window.scrollTo(0, 0);
+    };
+    if (document.startViewTransition && !reduced && router.ran) {
+      const vt = document.startViewTransition(render);
+      vt.ready.catch(() => {}); // a skipped transition (e.g. a second click mid-fade) is not an error
+      vt.finished.catch(() => {});
+      await vt.updateCallbackDone;
+    } else await render();
+    router.ran = true;
     main.focus({ preventScroll: true });
-    window.scrollTo(0, 0);
+    $('h1', main)?.classList.add('print-in');
+    explainRoute(key);
     counts();
     return;
   }
@@ -492,5 +533,6 @@ api('/api/health').then((h) => {
   $('[data-health]').textContent = `PayPal sandbox · AI: ${h.ai.provider === 'gemini' ? h.ai.model : 'offline reader'}`;
 }).catch(() => {});
 
+initExplain();
 addEventListener('hashchange', router);
 router();
