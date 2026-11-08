@@ -493,7 +493,8 @@ async function viewLicense(id, params) {
       if (!prev) row.style.setProperty('--stamp-delay', `${1500 + next.collaborators.indexOf(c) * 160}ms`);
       row.classList.add('stamped');
     }
-    setProof(main, next.status);
+    // On first paint a visitor arriving from PayPal sees the plates still apart; the replay below brings them in.
+    setProof(main, !prev && replay ? 'APPROVED' : next.status);
     const acts = $('[data-actions]', main);
     acts.innerHTML = next.status === 'AWAITING_PAYMENT' ? `<a class="btn" href="#/quotes/${next.quoteId}">Back to the quote</a>`
       : next.status === 'ACTIVE' && next.payMode === 'payouts' ? `<button class="btn danger" data-refund>Refund and revoke</button><p class="small muted">Refunds the buyer in PayPal. The license voids when PayPal confirms it.</p>`
