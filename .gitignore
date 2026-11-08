@@ -2,4 +2,7 @@
 spike/.env
 spike/logs/
 spike/data/
+app/data/
 node_modules/
+.impeccable/questions/
+.impeccable/review/

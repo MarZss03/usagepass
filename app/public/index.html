@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UsagePass</title>
+  <meta name="description" content="Turn a brand's request into a priced usage license. PayPal payment activates it and pays every collaborator.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="shell">
+    <nav class="rail" aria-label="Main">
+      <a class="logo" href="#/works" aria-label="UsagePass home"><span class="logo-blue">UsagePass</span><span class="logo-pink" aria-hidden="true">UsagePass</span></a>
+      <ul class="nav">
+        <li><a href="#/works" data-nav="works">Works</a></li>
+        <li><a href="#/requests" data-nav="requests">Requests <span class="count" data-count="requests"></span></a></li>
+        <li><a href="#/licenses" data-nav="licenses">Licenses <span class="count" data-count="licenses"></span></a></li>
+      </ul>
+      <div class="rail-foot">
+        <p data-health>PayPal sandbox</p>
+        <p>Sample works and names are fictional.</p>
+      </div>
+    </nav>
+    <main id="main" tabindex="-1"></main>
+  </div>
+  <div class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

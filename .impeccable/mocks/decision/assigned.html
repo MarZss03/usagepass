@@ -1,0 +1,87 @@
+<!doctype html><html><head><meta charset="utf-8"><title>UsagePass · Riso Registration</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0}
+body{width:1440px;height:900px;overflow:hidden;background:#f2efe6;color:#1d1d1b;font:15px/1.45 "Atkinson Hyperlegible",sans-serif;display:grid;grid-template-columns:232px 1fr 452px}
+.rail{background:#0078bf;color:#f2efe6;padding:28px 22px;display:flex;flex-direction:column;gap:6px}
+.logo{font:800 26px/1 "Bricolage Grotesque";letter-spacing:-.02em;margin-bottom:28px;position:relative}
+.logo span{position:absolute;left:2px;top:2px;color:#ff48b0;mix-blend-mode:multiply;z-index:-1}
+.nav a{display:flex;justify-content:space-between;padding:10px 12px;border-radius:6px;color:#f2efe6;text-decoration:none;font-weight:700}
+.nav a.on{background:#f2efe6;color:#0078bf}
+.nav small{opacity:.75;font-weight:400}
+.rail .foot{margin-top:auto;font-size:12px;opacity:.8}
+main{padding:32px 40px;overflow:hidden}
+.crumb{font-size:13px;color:#5d5a52}
+h1{font:800 40px/1.05 "Bricolage Grotesque";letter-spacing:-.02em;margin:6px 0 22px}
+.ask{background:#fff;border:2px solid #1d1d1b;border-radius:10px;padding:18px 20px;font-size:19px;line-height:1.4}
+.ask b{display:block;font:600 12px "Atkinson Hyperlegible";letter-spacing:.06em;text-transform:uppercase;color:#5d5a52;margin-bottom:6px}
+.terms{margin-top:22px;display:grid;grid-template-columns:1fr 210px;column-gap:24px}
+.terms h2{grid-column:1/-1;font:700 13px "Atkinson Hyperlegible";letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between}
+.row{display:contents}
+.term{border-top:1.5px solid #1d1d1b;padding:12px 0;display:flex;justify-content:space-between;gap:12px}
+.term strong{font-size:16px}
+.term .amt{font-variant-numeric:tabular-nums;font-weight:700}
+.cite{border-top:1.5px dashed #9b968a;padding:12px 0;font-size:12.5px;color:#5d5a52}
+.cite i{font-style:normal;color:#0078bf;font-weight:700}
+.refuse{border-top:1.5px solid #1d1d1b;padding:12px 0;color:#1d1d1b}
+.refuse strong{text-decoration:line-through;text-decoration-thickness:2px}
+.refuse em{display:block;font-style:normal;font-size:13px;color:#5d5a52}
+.total{border-top:3px solid #1d1d1b;padding:12px 0;display:flex;justify-content:space-between;font:800 22px "Bricolage Grotesque";font-variant-numeric:tabular-nums}
+.pay{margin-top:18px;display:flex;gap:12px;align-items:center}
+.btn{background:#0078bf;color:#fff;border:0;border-radius:8px;padding:14px 22px;font:700 16px "Atkinson Hyperlegible"}
+.ghost{color:#0078bf;font-weight:700}
+aside{background:#e9e4d6;padding:32px 34px;border-left:2px solid #1d1d1b;display:flex;flex-direction:column;gap:18px}
+.proof{position:relative;height:380px}
+.plate{position:absolute;inset:0;border-radius:6px;padding:26px 24px;font:800 34px/1 "Bricolage Grotesque"}
+.plate.blue{background:transparent;border:3px solid #0078bf;color:#0078bf;transform:translate(-9px,7px)}
+.plate.pink{border:3px solid #ff48b0;color:#ff48b0;mix-blend-mode:multiply;transform:translate(8px,-6px);background:repeating-radial-gradient(circle at 0 0,rgba(255,72,176,.18) 0 2px,transparent 2px 6px)}
+.plate small{display:block;font:700 12px "Atkinson Hyperlegible";letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px}
+.plate p{font:400 15px/1.4 "Atkinson Hyperlegible";margin-top:16px;color:#1d1d1b}
+.state{display:flex;gap:6px;font-size:12px;font-weight:700}
+.state span{padding:6px 10px;border-radius:999px;border:1.5px solid #1d1d1b;background:#f2efe6}
+.state .now{background:#ff48b0;border-color:#ff48b0;color:#1d1d1b}
+.state .off{opacity:.45}
+.split h3{font:700 13px "Atkinson Hyperlegible";letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
+.split div{display:flex;justify-content:space-between;border-top:1.5px solid #1d1d1b;padding:9px 0;font-variant-numeric:tabular-nums}
+.split div span:last-child{color:#5d5a52}
+.note{font-size:12.5px;color:#5d5a52}
+</style></head><body>
+<nav class="rail">
+  <div class="logo">UsagePass<span>UsagePass</span></div>
+  <div class="nav">
+    <a href="#">Works <small>3</small></a>
+    <a class="on" href="#">Requests <small>1 new</small></a>
+    <a href="#">Licenses <small>12</small></a>
+    <a href="#">Payouts</a>
+  </div>
+  <div class="foot">Sample data · PayPal sandbox</div>
+</nav>
+<main>
+  <div class="crumb">Requests / Northfield Coffee</div>
+  <h1>Spring launch poster</h1>
+  <div class="ask"><b>Northfield Coffee asked</b>We want to run the poster as paid ads on Instagram and TikTok in Canada and the US for three months, edit the caption, and use it to train our image model.</div>
+  <div class="terms">
+    <h2><span>What they can do</span><span>From your rate card</span></h2>
+    <div class="row"><div class="term"><strong>Base creative license</strong><span class="amt">$200.00</span></div><div class="cite"><i>§1 Base</i> any one work, organic and paid</div></div>
+    <div class="row"><div class="term"><strong>Paid ads, 90 days · Instagram, TikTok</strong><span class="amt">$80.00</span></div><div class="cite"><i>§3 Paid media</i> $80 per 90 days, Meta and TikTok</div></div>
+    <div class="row"><div class="term"><strong>Extra territory: United States</strong><span class="amt">$30.00</span></div><div class="cite"><i>§4 Territory</i> home CA included, +$30 each</div></div>
+    <div class="row"><div class="term"><strong>Caption edits</strong><span class="amt">$0.00</span></div><div class="cite"><i>§6 Edits</i> text changes allowed, no recrop</div></div>
+    <div class="row"><div class="refuse"><strong>Train an image model</strong><em>Not offered. Your terms exclude AI training (§9).</em></div><div class="cite"><i>§9 Excluded</i> no model training, ever</div></div>
+    <div class="row"><div class="total"><span>Total</span><span>$310.00</span></div><div></div></div>
+  </div>
+  <div class="pay"><button class="btn">Send quote to Northfield</button><span class="ghost">Edit terms</span></div>
+</main>
+<aside>
+  <div class="state"><span>Quoted</span><span class="now">Awaiting payment</span><span class="off">Active</span><span class="off">Paid out</span></div>
+  <div class="proof">
+    <div class="plate blue"><small>License proof</small>LIC-20261108<br>Spring launch poster</div>
+    <div class="plate pink"><small>&nbsp;</small>&nbsp;<br>&nbsp;<p>Plates come into register when PayPal captures the payment.</p></div>
+  </div>
+  <div class="split"><h3>Who gets paid</h3>
+    <div><span>Maya Chen · lead designer · 70%</span><span>$210.50</span></div>
+    <div><span>Tomás Reyes · animator · 20%</span><span>$60.14</span></div>
+    <div><span>Ines Okafor · voice · 10%</span><span>$30.07</span></div>
+  </div>
+  <div class="note">Shares are of $300.71 after PayPal fees. Names are sample data.</div>
+</aside>
+</body></html>
