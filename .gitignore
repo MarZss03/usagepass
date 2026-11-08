@@ -1,0 +1,5 @@
+.env
+spike/.env
+spike/logs/
+spike/data/
+node_modules/

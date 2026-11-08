@@ -1,0 +1,18 @@
+# Render Blueprint for the RightsRail webhook receiver (spike/receiver.mjs).
+# Free instances sleep when idle and lose spike/data on restart: fine for the sandbox demo.
+services:
+  - type: web
+    name: rightsrail-receiver
+    runtime: node
+    plan: free
+    rootDir: spike
+    buildCommand: "true"
+    startCommand: node receiver.mjs
+    healthCheckPath: /healthz
+    envVars:
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false
