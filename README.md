@@ -55,6 +55,14 @@ cloudflared tunnel --url http://localhost:5175
 node spike/spike.mjs webhook-setup
 ```
 
+### Deploy on Render
+
+`render.yaml` is a Render Blueprint. In Render: **New → Blueprint**, pick this repository, and fill in the values it asks for (the same as `.env`). Then register a webhook for the deployed URL and paste its id into `PAYPAL_WEBHOOK_ID` on Render:
+
+```bash
+PAYPAL_WEBHOOK_ID= WEBHOOK_URL=https://<service>.onrender.com/webhooks/paypal node spike/spike.mjs webhook-setup
+```
+
 Then open **Works → Spring launch poster → Open the brand request page**, pick an example request, get the quote, and pay with a sandbox **personal** account.
 
 ## Project layout

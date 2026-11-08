@@ -1,18 +1,31 @@
-# Render Blueprint for the RightsRail webhook receiver (spike/receiver.mjs).
-# Free instances sleep when idle and lose spike/data on restart: fine for the sandbox demo.
+# Render Blueprint for UsagePass (app/server.mjs). No dependencies, so the build step does nothing.
+# Free instances sleep after ~15 idle minutes (the first visit then takes up to a minute) and
+# lose app/data on restart or redeploy: fine for a sandbox demo. Values marked sync: false are
+# entered in the Render dashboard, never committed.
 services:
   - type: web
-    name: rightsrail-receiver
+    name: usagepass
     runtime: node
     plan: free
-    rootDir: spike
     buildCommand: "true"
-    startCommand: node receiver.mjs
-    healthCheckPath: /healthz
+    startCommand: node app/server.mjs
+    healthCheckPath: /api/health
     envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: PAYPAL_LOG
+        value: "0"
       - key: PAYPAL_CLIENT_ID
         sync: false
       - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYEE_LEAD_EMAIL
+        sync: false
+      - key: PAYEE_ANIMATOR_EMAIL
+        sync: false
+      - key: PAYEE_VOICE_EMAIL
+        sync: false
+      - key: GEMINI_API_KEY
         sync: false
       - key: PAYPAL_WEBHOOK_ID
         sync: false
