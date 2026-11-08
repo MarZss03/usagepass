@@ -1,6 +1,8 @@
 # UsagePass
 
-**A brand asks in one sentence. AI reads it against the creators' rate card. PayPal payment makes the license active and pays everyone who made the work.**
+**License collaborative creative work in minutes. Every rights holder consents, AI checks the request against each of their terms, and PayPal pays every contributor verifiably.**
+
+Live demo: https://usagepass.onrender.com (PayPal sandbox; press **Explain this screen** or `?` on any page)
 
 Small creator teams (a designer, an animator, a voice artist) get asked all the time whether a brand can "use the poster in some ads." What follows is a thread of vague emails, a guessed price, an invoice, and weeks of waiting, after which the lead creator has to split the money by hand. Usage terms are rarely written down, so nobody is sure what was bought.
 
@@ -13,6 +15,17 @@ UsagePass replaces that thread with three steps:
 The interface shows this as a two-ink risograph proof: its pink and blue plates sit out of register until PayPal confirms the payment, then snap into register.
 
 > Sample works, studios, creators and brands are fictional. Everything runs in the PayPal sandbox.
+
+## Every contributor consents
+
+A work is made by several people, and each of them can set terms of their own. In the sample, Ines (voice artist, 10%) allows the poster to be licensed, but not her voice in political or issue ads, and not a recut of her voiceover.
+
+- Each contributor owns a component (artwork, animation, voiceover), has approved a numbered version of the terms (with a date), and may add restrictions.
+- Gemini reads the request against the team’s never-list **and** each contributor’s restrictions, quotes the words that conflict, and names whose term it is.
+- Instead of a dead end, the engine prices the ways through from the rate card: **A. keep her part and drop what she does not allow**, or **B. remove her part** (the “silent cut” clause) and re-split the money among the remaining contributors. The brand picks one; the quote is re-priced from the same reading, so the AI is not asked again and numbers cannot drift.
+- Before payment a card states exactly what is and isn’t licensed and that it was *approved by N/N contributors on this license, terms vN*. Checkout is refused while a conflict is open.
+- After payment the license shows each contributor’s PayPal capture id and the PayPal fee row, and can be downloaded as a structured, auditable license record.
+- A full refund revokes the license; a partial refund keeps it active and is recorded as an amendment.
 
 ## How PayPal is used
 
@@ -73,7 +86,8 @@ app/lib/ai.mjs          Gemini reading + guardrails + offline reader
 app/lib/ratecard.mjs    sample works, rate cards, pricing engine
 app/lib/licenses.mjs    checkout, capture, webhook state machine, Payouts
 app/lib/paypal.mjs      sandbox client (OAuth, logged calls, webhook verification)
-app/public/             the interface (vanilla HTML/CSS/JS)
+app/public/             the interface (vanilla HTML/CSS/JS), explain mode in explain.js
+app/seed/demo.json      recorded real runs (Gemini readings, one sandbox payment) loaded into an empty store
 spike/                  the first sandbox spike that proved each PayPal step
 ```
 
