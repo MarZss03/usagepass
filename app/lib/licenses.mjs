@@ -42,17 +42,23 @@ function touch(lic) { lic.updatedAt = new Date().toISOString(); save(); publish(
 export async function checkout(quote, { origin }) {
   const work = db.works[quote.workId];
   if (!quote.lines.length || quote.total <= 0) throw new Error('This quote has nothing to pay for.');
-  const missing = work.creators.filter((c) => !env(c.emailEnv));
+  if (quote.conflicts?.length) throw new Error('A contributor’s terms conflict with this request. Choose one of the options first.');
+  // Only the contributors who are party to this quote are on the license and the payment.
+  const party = (quote.split || work.creators).map((p) => ({ ...p, ...work.creators.find((c) => c.id === p.id), pct: p.pct }));
+  const missing = party.filter((c) => !env(c.emailEnv));
   if (missing.length) throw new Error(`Collaborator PayPal emails are not configured (${missing.map((c) => c.emailEnv).join(', ')}).`);
 
   const id = newId('LIC');
-  const shares = splitCents(quote.total, work.creators);
+  const shares = splitCents(quote.total, party);
   const lic = {
     id, quoteId: quote.id, workId: work.id, brand: quote.brand, request: quote.request,
     grants: quote.lines.map((l) => ({ label: l.label, clauseId: l.clauseId, amount: l.amount })),
     notGranted: quote.refused.map((r) => ({ label: r.label, clauseId: r.clauseId })),
     total: quote.total, currency: 'USD', payMode: work.payMode,
-    collaborators: work.creators.map((c, i) => ({ id: c.id, name: c.name, role: c.role, pct: c.pct, gross: shares[i], email: env(c.emailEnv), status: 'WAITING', amount: null })),
+    termsVersion: work.termsVersion || 1,
+    choice: quote.choice || null,
+    notParty: work.creators.filter((c) => !party.some((p) => p.id === c.id)).map((c) => ({ id: c.id, name: c.name, role: c.role, component: c.component })),
+    collaborators: party.map((c, i) => ({ id: c.id, name: c.name, role: c.role, pct: c.pct, gross: shares[i], email: env(c.emailEnv), approved: c.approved || null, status: 'WAITING', amount: null })),
     status: 'AWAITING_PAYMENT', orderId: null, captures: {}, payoutBatchId: null, history: [],
     createdAt: new Date().toISOString(), updatedAt: null,
   };
@@ -72,7 +78,7 @@ export async function checkout(quote, { origin }) {
       intent: 'CAPTURE',
       purchase_units: lic.collaborators.map((c, i) => ({
         reference_id: `${id}-${i + 1}`, custom_id: id,
-        description: `${c.role} share (${c.pct}%) · ${description}`.slice(0, 127),
+        description: `${c.role} share (${Math.round(c.pct * 10) / 10}%) · ${description}`.slice(0, 127),
         payee: { email_address: c.email },
         amount: { currency_code: 'USD', value: money(c.gross) },
       })),
@@ -156,7 +162,7 @@ async function maybePayout(lic) {
       sender_batch_header: { sender_batch_id: `${lic.id}-payout`, email_subject: 'UsagePass: your share of a license sale', email_message: `${lic.brand} licensed your work. This is your agreed share of license ${lic.id}.` },
       items: lic.collaborators.map((c, i) => ({
         recipient_type: 'EMAIL', receiver: c.email, amount: { value: money(shares[i]), currency: 'USD' },
-        note: `${c.role} share (${c.pct}%) of ${lic.id}`, sender_item_id: `${lic.id}-${i + 1}`,
+        note: `${c.role} share (${Math.round(c.pct * 10) / 10}%) of ${lic.id}`, sender_item_id: `${lic.id}-${i + 1}`,
       })),
     }, { requestId: false });
     lic.payoutBatchId = data.batch_header?.payout_batch_id;
@@ -204,9 +210,19 @@ export function applyEvent(event) {
       }
       case 'PAYMENT.CAPTURE.REFUNDED':
       case 'PAYMENT.CAPTURE.REVERSED': {
-        const id = r.custom_id || (await captureFor(r))?.custom_id;
+        // The refunded capture says whether it was refunded in full or in part.
+        const cap = await captureFor(r);
+        const id = r.custom_id || cap?.custom_id;
         lic = db.licenses[id];
-        if (lic) transition(lic, 'REVOKED', event.event_type, `${event.event_type.endsWith('REVERSED') ? 'Chargeback' : 'Refund'} of $${r.amount?.value}`);
+        if (!lic) break;
+        const what = event.event_type.endsWith('REVERSED') ? 'Chargeback' : 'Refund';
+        if (cap?.status === 'PARTIALLY_REFUNDED') {
+          // A partial refund changes the money, not the grant: the license stays and the change is on record.
+          lic.amendments = [...(lic.amendments || []), { at: new Date().toISOString(), event: event.event_type, captureId: cap.id, amount: r.amount?.value }];
+          transition(lic, lic.status, event.event_type, `Partial ${what.toLowerCase()} of ${r.amount?.value} on capture ${cap.id}; license unchanged, flagged for the team`);
+        } else {
+          transition(lic, 'REVOKED', event.event_type, `${what} of ${r.amount?.value}${cap ? ` on capture ${cap.id}` : ''}`);
+        }
         break;
       }
       case 'PAYMENT.PAYOUTS-ITEM.SUCCEEDED':

@@ -91,6 +91,26 @@ async function route(req, res, url) {
     return q ? json(res, 200, q) : json(res, 404, { error: 'No such quote.' });
   }
 
+  // The brand picks one of the ways through a contributor's restriction. The engine re-prices from the
+  // same reading with that choice; the AI is not asked again and cannot change the numbers.
+  if (req.method === 'POST' && (r = m(/^\/api\/quotes\/([\w-]+)\/options$/))) {
+    const q = db.quotes[r[1]];
+    if (!q) return json(res, 404, { error: 'No such quote.' });
+    const { conflict, option } = await jsonBody(req);
+    const k = (q.conflicts || []).find((c) => c.key === conflict);
+    const o = k?.options?.find((x) => x.key === option);
+    if (!o) return json(res, 400, { error: 'That option is not available for this quote.' });
+    const work = db.works[q.workId];
+    const priced = priceRequest(work, q.interpretation, o.variant);
+    const next = {
+      ...q, ...priced, id: newId('Q'), parentId: q.id, licenseId: null, createdAt: new Date().toISOString(),
+      choice: { conflict: k.key, option: o.key, title: o.title, creator: k.creator, restriction: k.restriction },
+    };
+    db.quotes[next.id] = next;
+    save();
+    return json(res, 201, next);
+  }
+
   if (req.method === 'POST' && (r = m(/^\/api\/quotes\/([\w-]+)\/checkout$/))) {
     const q = db.quotes[r[1]];
     if (!q) return json(res, 404, { error: 'No such quote.' });

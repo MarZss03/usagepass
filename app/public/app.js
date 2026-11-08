@@ -5,7 +5,9 @@ const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const main = $('#main');
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const usd = (cents) => `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const usd = (cents) => `${cents < 0 ? '−' : ''}$${(Math.abs(cents) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const pct = (n) => `${Math.round(Number(n) * 10) / 10}%`;
+const day = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 const usdStr = (v) => `$${Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -63,7 +65,7 @@ const art = (key) => ART[key] || ART.spring;
 // ---------- state vocabulary (one ordered line, same everywhere) ----------
 
 const LABEL = {
-  QUOTED: 'Quoted', AWAITING_PAYMENT: 'Awaiting payment', APPROVED: 'Approved in PayPal', PARTIALLY_PAID: 'Partly captured',
+  QUOTED: 'Quoted', NEEDS_CHOICE: 'Needs a choice', REFUSED: 'Refused', AWAITING_PAYMENT: 'Awaiting payment', APPROVED: 'Approved in PayPal', PARTIALLY_PAID: 'Partly captured',
   PAYMENT_HELD: 'Held by PayPal', ACTIVE: 'Active', DENIED: 'Payment declined', REVOKED: 'Revoked',
 };
 function stateLine(lic) {
@@ -135,18 +137,22 @@ function shares(total, creators) {
 // PayPal's fee across all captures of a license, in cents (so the ledger visibly sums to the total).
 const feesOf = (lic) => Math.round(Object.values(lic.captures || {}).reduce((s, c) => s + Number(c.fee || 0), 0) * 100);
 
-function ledgerHTML(collabs, { payMode, total, live, fees = 0 }) {
+// Who is paid and how much. Before any quote there is no amount, only each share of license revenue.
+function ledgerHTML(collabs, { payMode, total, live, fees = 0, notParty = [] }) {
   const est = shares(total, collabs);
   const rows = collabs.map((c, i) => {
     const paid = c.status === 'PAID';
     const sending = c.status === 'SENDING';
-    const amount = paid && c.amount ? usdStr(c.amount) : payMode === 'split' ? usd(est[i]) : `${c.pct}%`;
-    const st = !live ? (payMode === 'split' ? 'Paid directly at checkout' : 'Paid from the net after PayPal fees')
-      : paid ? `${I.check}Received ${payMode === 'split' ? 'directly from the buyer, after PayPal fees' : 'by PayPal Payouts'}`
+    const amount = paid && c.amount ? usdStr(c.amount) : total > 0 && payMode === 'split' ? usd(est[i]) : `${pct(c.pct)}`;
+    const st = !live
+      ? (total > 0 ? (payMode === 'split' ? 'Paid directly to them at checkout' : 'Paid from the net by PayPal Payouts') : `${pct(c.pct)} of license revenue`)
+      : paid ? `${I.check}Received ${payMode === 'split' ? 'directly from the buyer' : 'by PayPal Payouts'}${c.captureId ? ` · PayPal capture <code>${esc(c.captureId)}</code>` : c.payoutItemId ? ` · payout item <code>${esc(c.payoutItemId)}</code>` : ''}`
         : sending ? '<span class="dot live"></span>Payout sent, waiting for PayPal'
           : c.status && c.status !== 'WAITING' ? esc(c.status.toLowerCase()) : '<span class="dot"></span>Waits for the payment';
-    return `<li data-collab="${esc(c.id)}"><span class="who"><b>${esc(c.name)}</b> <span>· ${esc(c.role)} · ${c.pct}%</span></span><span class="money">${amount}</span><span class="st ${paid ? 'paid' : ''}">${st}</span></li>`;
+    const ok = c.approved ? `<span class="st approved">${I.check}Approved terms v${esc(c.approved.version)} on ${esc(day(c.approved.at))}</span>` : '';
+    return `<li data-collab="${esc(c.id)}"><span class="who"><b>${esc(c.name)}</b> <span>· ${esc(c.role)} · ${pct(c.pct)}</span></span><span class="money">${amount}</span><span class="st ${paid ? 'paid' : ''}">${st}</span>${ok}</li>`;
   });
+  for (const n of notParty) rows.push(`<li class="out"><span class="who"><b>${esc(n.name)}</b> <span>· ${esc(n.role)}</span></span><span class="money">—</span><span class="st">Not on this license: the ${esc(n.component)} is removed</span></li>`);
   if (live && fees > 0) rows.push(`<li><span class="who"><b>PayPal fees</b> <span>· kept by PayPal</span></span><span class="money">${usd(fees)}</span></li>`);
   return `<div class="ledger-wrap"><h2>Who gets paid</h2><ul class="ledger" style="margin-top:8px">${rows.join('')}</ul></div>`;
 }
@@ -202,19 +208,31 @@ function wireEvidence(root) {
 async function viewWorks() {
   const works = await api('/api/works');
   main.innerHTML = `<section class="page">
-    <h1>Works</h1>
-    <p class="lede">Each work has its own rate card, its never-licensed list, and the split between the people who made it. Brands license from the request page; PayPal payment makes the license active.</p>
+    <h1>License collaborative creative work in minutes.</h1>
+    <p class="lede">Every use is checked against terms each contributor approved, every price cites its clause, and every contributor is paid through PayPal in the same checkout.</p>
+    <p class="hero-actions"><a class="btn" href="#/request/spring-poster?example=1">Try it as a brand ${I.arrow}</a><a class="btn quiet" href="#/licenses">See a paid license</a></p>
     <div class="works">${works.map((w) => {
       const base = w.clauses.find((c) => c.kind === 'base');
-      return `<a class="work-row" href="#/works/${w.id}">${art(w.art)}<div><h3>${esc(w.title)}</h3><p>${esc(w.studio)} · ${esc(w.medium)}</p><p class="small">${w.creators.map((c) => `${esc(c.name)} ${c.pct}%`).join(' · ')}</p></div><p class="from"><span class="money">${usd(base.price)}</span><small>base license</small></p></a>`;
+      const own = w.creators.filter((c) => c.restrictions?.length).length;
+      return `<article class="work-row">${art(w.art)}<div><h3><a href="#/works/${w.id}">${esc(w.title)}</a></h3><p>${esc(w.studio)} · ${esc(w.medium)}</p><p class="small">${w.creators.map((c) => `${esc(c.name)} ${pct(c.pct)}`).join(' · ')} · terms v${esc(w.termsVersion || 1)} approved by ${w.creators.length}/${w.creators.length}${own ? ` · ${own} with terms of their own` : ''}</p><p class="row-actions"><a class="btn" href="#/request/${w.id}">Request a license</a><a class="btn quiet" href="#/works/${w.id}">View terms</a></p></div><p class="from"><span class="money">${usd(base.price)}</span><small>base license</small></p></article>`;
     }).join('')}</div>
   </section>`;
+}
+
+// Each contributor: their part of the work, their share, when they approved the terms, and their own limits.
+function contributorsHTML(w) {
+  return `<div class="contribs"><h2>Who made it, and what each of them allows</h2><ul class="ledger" style="margin-top:8px">${w.creators.map((c) => `
+    <li><span class="who"><b>${esc(c.name)}</b> <span>· ${esc(c.role)} · the ${esc(c.component)}</span></span><span class="money">${pct(c.pct)}</span>
+      <span class="st approved">${I.check}Approved terms v${esc(c.approved?.version ?? w.termsVersion)} on ${esc(day(c.approved?.at || Date.now()))} · ${pct(c.pct)} of license revenue</span>
+      ${(c.restrictions || []).map((r) => `<span class="st own">Own term: no ${esc(r.text.charAt(0).toLowerCase() + r.text.slice(1))}${c.removable ? ` · the ${esc(c.component)} can be left out` : ''}</span>`).join('')}
+    </li>`).join('')}</ul>
+    <p class="small muted" style="margin-top:10px">Only the team can change these terms, and a change needs every contributor to approve the new version. Licenses already sold keep the terms they were sold under.</p></div>`;
 }
 
 async function viewWork(id) {
   const w = await api(`/api/works/${id}`);
   const never = w.clauses.find((c) => c.kind === 'excluded');
-  const priceOf = (c) => c.price != null ? usd(c.price) + (c.blockDays ? ` / ${c.blockDays} days` : c.kind === 'territory' ? ' each' : '') : c.prices ? `${usd(c.prices.text)} · recut ${usd(c.prices.recut)}` : '';
+  const priceOf = (c) => c.price != null ? usd(c.price) + (c.blockDays ? ` / ${c.blockDays} days` : c.kind === 'territory' ? ' each' : '') : c.prices ? `text free · recut ${usd(c.prices.recut)}` : '';
   main.innerHTML = `<section class="page">
     <p class="crumb"><a href="#/works">Works</a><span aria-hidden="true">/</span><span>${esc(w.title)}</span></p>
     <div class="work-head">
@@ -231,19 +249,21 @@ async function viewWork(id) {
       ${w.clauses.filter((c) => c.kind !== 'excluded').map((c) => `<div class="row" role="listitem"><div class="body"><div><b>${esc(c.title)}</b><p>${esc(c.text)}</p></div><span class="money">${priceOf(c)}</span></div><div class="shoulder"><span class="mark">§${c.id}</span></div></div>`).join('')}
       <div class="row" role="listitem"><div class="body"><div><b>${esc(never.title)}</b><p>${never.uses.map(esc).join('; ')}. The AI refuses these before any order exists.</p></div></div><div class="shoulder"><span class="mark">§${never.id}</span></div></div>
     </div>
-    <div style="max-width:620px;margin-top:34px">${ledgerHTML(w.creators, { payMode: w.payMode, total: 0, live: false })}</div>
+    <div style="max-width:760px;margin-top:34px">${contributorsHTML(w)}</div>
   </section>`;
 }
 
 const EXAMPLES = [
   'We want to run it as paid ads on Instagram and TikTok in Canada and the US for three months, edit the caption, and use it to train our image model.',
-  'Boost it on Facebook and YouTube in Canada for 30 days, exactly as it is.',
+  'Paid ads on Instagram and TikTok in Canada and the US for three months, and recut it down to 15 seconds.',
+  'We are the Toronto Transit Riders Alliance. Run it as paid Instagram and YouTube ads in Canada for 30 days to push our ballot measure.',
   'Put it on bus shelters in Toronto and on our website for the spring season, with our logo added.',
 ];
 
-async function viewRequest(id) {
+async function viewRequest(id, params = new URLSearchParams()) {
   const w = await api(`/api/works/${id}`);
   const never = w.clauses.find((c) => c.kind === 'excluded');
+  const own = w.creators.flatMap((c) => (c.restrictions || []).map((r) => ({ ...r, who: c })));
   const summary = w.clauses.filter((c) => c.price != null || c.prices);
   main.innerHTML = `<div class="page-split">
   <section class="col">
@@ -265,9 +285,12 @@ async function viewRequest(id) {
     <figure>${art(w.art)}<figcaption class="art-note">Sample artwork · ${esc(w.medium)}</figcaption></figure>
     <div><h2>Rate card</h2><ul class="ledger" style="margin-top:8px">${summary.map((c) => `<li><span class="who"><b>${esc(c.title)}</b></span><span class="money">${c.price != null ? usd(c.price) + (c.blockDays ? ` / ${c.blockDays} days` : c.kind === 'territory' ? ' each' : '') : `text free · recut ${usd(c.prices.recut)}`}</span></li>`).join('')}</ul></div>
     <div><h2>Never licensed</h2><ul class="never">${never.uses.map((u) => `<li><span>${esc(u)}</span></li>`).join('')}</ul></div>
+    ${own.length ? `<div><h2>Contributors’ own terms</h2><ul class="never own">${own.map((r) => `<li><span>${esc(r.text)}</span><small>${esc(r.who.name)}, ${esc(r.who.role.toLowerCase())}${r.who.removable ? ` · the ${esc(r.who.component)} can be left out` : ''}</small></li>`).join('')}</ul></div>` : ''}
   </aside>
   </div>`;
   const form = $('form', main);
+  const ex = Number(params.get('example'));
+  if (ex >= 1 && ex <= EXAMPLES.length) form.request.value = EXAMPLES[ex];
   $$('[data-ex]', main).forEach((b) => b.addEventListener('click', () => { form.request.value = EXAMPLES[b.dataset.ex]; form.request.focus(); }));
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -304,7 +327,7 @@ function termsHTML(q) {
     ${q.lines.map(line).join('')}
     ${q.refused.map(refused).join('')}
     ${q.review.map(review).join('')}
-    <div class="total" style="--i:${i}"><span>${q.blocked ? 'Nothing to pay' : 'Total'}</span><span>${usd(q.total)}</span></div><div></div>
+    <div class="total" style="--i:${i}"><span>${q.blocked ? 'Nothing to pay' : q.conflicts?.length ? 'As asked, before a choice' : 'Total'}</span><span>${usd(q.total)}</span></div><div></div>
   </div>`;
 }
 
@@ -313,14 +336,46 @@ function aiLine(q) {
   return `<p class="ai-line"><span class="tag offline">Offline reader</span>No AI key is set, so simple keyword rules read this request. Prices still come from the rate card.</p>`;
 }
 
+// A contributor's own term conflicts with the request: say whose, quote the words, offer the priced ways through.
+function conflictsHTML(q) {
+  return (q.conflicts || []).map((k) => {
+    const opts = (k.options || []).filter((o) => o.payable);
+    return `<section class="conflict" aria-labelledby="cf-${esc(k.key)}">
+      <h2 id="cf-${esc(k.key)}">${esc(k.creator)}’s own terms don’t allow part of this</h2>
+      <p>${esc(k.creator)} (${esc(k.role.toLowerCase())}, the ${esc(k.component)}) approved the card except for: <b>${esc(k.restriction.toLowerCase())}</b>.${k.evidence ? ` You asked: “<mark>${esc(k.evidence)}</mark>”.` : ''}</p>
+      ${opts.length ? `<div class="options">${opts.map((o, i) => `
+        <button type="button" class="option" data-conflict="${esc(k.key)}" data-option="${esc(o.key)}">
+          <span class="opt-tag">Option ${String.fromCharCode(65 + i)}</span>
+          <strong>${esc(o.title)}</strong>
+          <span>${esc(o.summary)}</span>
+          <span class="opt-foot"><span class="money">${usd(o.total)}</span><span>${o.parties} ${o.parties === 1 ? 'person' : 'people'} paid</span></span>
+        </button>`).join('')}</div>` : '<p class="small">No version of this request fits everyone’s terms. Ask the team directly.</p>'}
+      <p class="small muted">The AI found the conflict. The options, prices and split are computed from the rate card; pick one and the quote is re-priced.</p>
+    </section>`;
+  }).join('');
+}
+
+// What the brand is about to buy, in one look, with who has agreed to it.
+function confirmHTML(q, w) {
+  const party = q.split || w.creators;
+  return `<section class="confirm" aria-label="What you are buying">
+    <h2>Before you pay</h2>
+    <ul>${q.lines.filter((l) => l.amount !== 0 || l.key === 'edits').map((l) => `<li>${I.check}${esc(l.label)}</li>`).join('')}${q.refused.map((l) => `<li class="no">${I.x}Not included: ${esc(l.label)}</li>`).join('')}</ul>
+    <p class="agreed">${I.check}Rights approved by ${party.length}/${party.length} contributors on this license, terms v${esc(w.termsVersion || 1)}${q.choice ? ` · you chose “${esc(q.choice.title.toLowerCase())}”` : ''}</p>
+  </section>`;
+}
+
 async function viewQuote(id, params) {
   const q = await api(`/api/quotes/${id}`);
   const w = await api(`/api/works/${q.workId}`);
+  const party = (q.split || w.creators).map((p) => ({ ...w.creators.find((c) => c.id === p.id), ...p }));
+  const notParty = w.creators.filter((c) => !party.some((p) => p.id === c.id));
+  const payable = q.payable ?? q.total > 0;
   let lic = q.licenseId ? await api(`/api/licenses/${q.licenseId}`).catch(() => null) : null;
   if (lic && lic.status !== 'AWAITING_PAYMENT') { location.replace(`#/licenses/${lic.id}`); return; }
   const fresh = sessionStorage.getItem('fresh') === q.id;
   sessionStorage.removeItem('fresh');
-  const ev = [...q.lines, ...q.refused, ...q.review].map((l) => ({ key: l.key, evidence: l.evidence }));
+  const ev = [...q.lines, ...q.refused, ...q.review, ...(q.conflicts || []).map((k) => ({ key: `cf-${k.key}`, evidence: k.evidence }))].map((l) => ({ key: l.key, evidence: l.evidence }));
   main.innerHTML = `<div class="page-split">
     <section class="col ${fresh && !reduced ? 'fresh' : ''}">
       <p class="crumb"><a href="#/requests">Requests</a><span aria-hidden="true">/</span><span>${esc(q.brand)}</span></p>
@@ -329,24 +384,39 @@ async function viewQuote(id, params) {
       ${aiLine(q)}
       ${params.get('cancelled') ? '<p class="notice">You left PayPal before paying. Nothing was charged; the quote is still here.</p>' : ''}
       ${q.blocked ? `<p class="notice"><b>Not available.</b> ${esc(q.blocked)} No order can be created.</p>` : ''}
+      ${q.choice ? `<p class="notice chosen">${I.check}<span>You chose <b>${esc(q.choice.title.toLowerCase())}</b> to respect ${esc(q.choice.creator)}’s term: ${esc(q.choice.restriction.toLowerCase())}. <a href="#/quotes/${esc(q.parentId)}">Back to the options</a></span></p>` : ''}
+      ${conflictsHTML(q)}
       ${termsHTML(q)}
-      <div class="pay">${q.total > 0 ? `<button class="btn" data-pay>Pay ${usd(q.total)} with PayPal ${I.out}</button>` : ''}<p class="small muted">PayPal sandbox. ${w.payMode === 'split' ? 'One checkout pays each collaborator directly.' : 'Collaborators are paid by PayPal Payouts once the payment clears.'} Not legal advice; the license grants only the lines above.</p></div>
+      ${payable ? confirmHTML(q, w) : ''}
+      <div class="pay">${payable ? `<button class="btn" data-pay>Pay ${usd(q.total)} with PayPal ${I.out}</button>` : ''}<p class="small muted">${q.conflicts?.length ? 'Choose an option above to pay. ' : ''}PayPal sandbox. ${w.payMode === 'split' ? 'One checkout pays each contributor on the license directly.' : 'Contributors are paid by PayPal Payouts once the payment clears.'} UsagePass produces a structured, auditable license record from creator-approved terms; it is not legal advice.</p></div>
       <p class="error" data-err role="alert"></p>
     </section>
     <aside aria-label="License preview">
       ${stateLine(null)}
       ${proofHTML({ id: q.id, title: w.title, brand: q.brand, grants: q.lines, notGranted: q.refused, total: q.total, status: q.blocked ? 'REFUSED' : 'QUOTED' })}
-      ${ledgerHTML(w.creators, { payMode: w.payMode, total: q.total, live: false })}
+      ${ledgerHTML(party, { payMode: w.payMode, total: q.total, live: false, notParty })}
     </aside>
   </div>
-  ${q.total > 0 ? `<div class="paybar" aria-hidden="true"><span class="money">${usd(q.total)}</span><button class="btn" data-pay tabindex="-1">Pay with PayPal ${I.out}</button></div>` : ''}`;
+  ${payable ? `<div class="paybar" aria-hidden="true"><span class="money">${usd(q.total)}</span><button class="btn" data-pay tabindex="-1">Pay with PayPal ${I.out}</button></div>` : ''}`;
+  $$('[data-option]', main).forEach((b) => b.addEventListener('click', async () => {
+    $$('[data-option]', main).forEach((x) => { x.disabled = true; });
+    b.classList.add('picked');
+    try {
+      const next = await api(`/api/quotes/${q.id}/options`, { method: 'POST', body: { conflict: b.dataset.conflict, option: b.dataset.option } });
+      sessionStorage.setItem('fresh', next.id);
+      location.hash = `#/quotes/${next.id}`;
+    } catch (ex) {
+      $('[data-err]', main).textContent = ex.message;
+      $$('[data-option]', main).forEach((x) => { x.disabled = false; });
+    }
+  }));
   const inflow = $('.pay [data-pay]', main);
   const bar = $('.paybar', main);
   if (inflow && bar && 'IntersectionObserver' in window) {
     new IntersectionObserver(([e]) => bar.classList.toggle('away', e.isIntersecting)).observe(inflow);
   }
   wireEvidence(main);
-  if (fresh && !reduced && q.total > 0) countUp($('.terms .total span:last-child', main), q.total, 120 + (q.lines.length + q.refused.length + q.review.length) * 90);
+  if (fresh && !reduced && payable) countUp($('.terms .total span:last-child', main), q.total, 120 + (q.lines.length + q.refused.length + q.review.length) * 90);
   $$('[data-pay]', main).forEach((b) => b.addEventListener('click', async (e) => {
     const btn = $('.pay [data-pay]', main);
     e.currentTarget.disabled = true;
@@ -391,6 +461,8 @@ async function viewLicense(id, params) {
       <h1>${esc(lic.work?.title || 'License')}</h1>
       <blockquote class="ask"><span class="who">${esc(lic.brand)} asked</span>${esc(lic.request)}</blockquote>
       ${params.get('error') ? `<p class="notice">${esc(params.get('error'))}</p>` : ''}
+      ${lic.recorded ? `<p class="notice">A recorded run: this payment happened in the PayPal sandbox on ${esc(day(lic.createdAt))}, and the events below are what PayPal sent then. Try your own from <a href="#/request/spring-poster?example=1">the request page</a>.</p>` : ''}
+      ${lic.choice ? `<p class="notice chosen">${I.check}<span>Licensed as <b>${esc(lic.choice.title.toLowerCase())}</b>, respecting ${esc(lic.choice.creator)}’s term: ${esc(lic.choice.restriction.toLowerCase())}.</span></p>` : ''}
       ${params.get('stale') ? '<p class="notice">That PayPal tab belonged to an older checkout. This license is unchanged.</p>' : ''}
       <div class="terms">
         <h2>Granted</h2><h2 class="shoulder-h">Clause</h2>
@@ -404,12 +476,12 @@ async function viewLicense(id, params) {
     <aside aria-label="License">
       <div data-states>${stateLine(lic)}</div>
       ${proofHTML({ id: lic.id, title: lic.work?.title, brand: lic.brand, grants: lic.grants, notGranted: lic.notGranted, total: lic.total, status: replay ? 'APPROVED' : lic.status })}
-      <div data-ledger>${ledgerHTML(lic.collaborators, { payMode: lic.payMode, total: lic.total, live: true, fees: feesOf(lic) })}</div>
+      <div data-ledger>${ledgerHTML(lic.collaborators, { payMode: lic.payMode, total: lic.total, live: true, fees: feesOf(lic), notParty: lic.notParty || [] })}</div>
     </aside>
   </div>`;
   const render = (next, prev) => {
     $('[data-states]', main).innerHTML = stateLine(next);
-    $('[data-ledger]', main).innerHTML = ledgerHTML(next.collaborators, { payMode: next.payMode, total: next.total, live: true, fees: feesOf(next) });
+    $('[data-ledger]', main).innerHTML = ledgerHTML(next.collaborators, { payMode: next.payMode, total: next.total, live: true, fees: feesOf(next), notParty: next.notParty || [] });
     $('[data-hist]', main).innerHTML = historyHTML(next);
     if (prev && next.history.length > prev.history.length) $$('[data-history] li', main).slice(0, next.history.length - prev.history.length).forEach((li) => li.classList.add('new'));
     // A share that just arrived gets stamped.
@@ -425,7 +497,8 @@ async function viewLicense(id, params) {
     const acts = $('[data-actions]', main);
     acts.innerHTML = next.status === 'AWAITING_PAYMENT' ? `<a class="btn" href="#/quotes/${next.quoteId}">Back to the quote</a>`
       : next.status === 'ACTIVE' && next.payMode === 'payouts' ? `<button class="btn danger" data-refund>Refund and revoke</button><p class="small muted">Refunds the buyer in PayPal. The license voids when PayPal confirms it.</p>`
-        : next.status === 'ACTIVE' ? '<p class="small muted">Each collaborator holds their own share; a refund is issued from their PayPal accounts.</p>' : '';
+        : next.status === 'ACTIVE' ? '<p class="small muted">Each contributor holds their own share; a refund is issued from their PayPal accounts.</p>' : '';
+    if (next.status !== 'AWAITING_PAYMENT') acts.innerHTML += `<p class="record"><a class="btn quiet" href="/api/licenses/${esc(next.id)}" download="${esc(next.id)}.json">Download the license record</a><span class="small muted">A structured, auditable record generated from creator-approved terms (v${esc(next.termsVersion || 1)}), with every PayPal id. Not legal advice.</span></p>`;
     $('[data-refund]', acts)?.addEventListener('click', async (e) => {
       if (!confirm(`Refund ${usd(next.total)} to ${next.brand} and revoke ${next.id}? This cannot be undone.`)) return;
       e.currentTarget.disabled = true;
@@ -453,7 +526,7 @@ async function viewRequests() {
   const lic = Object.fromEntries(licenses.map((l) => [l.id, l]));
   main.innerHTML = `<section class="page"><h1>Requests</h1><p class="lede">Every brand request, read and priced. Open one to see the reasoning line by line.</p>
     ${quotes.length ? `<table class="table"><thead><tr><th>Brand</th><th>Work</th><th>Request</th><th>Total</th><th>State</th></tr></thead><tbody>
-      ${quotes.map((q) => { const s = lic[q.licenseId]?.status || 'QUOTED'; return `<tr data-href="#/quotes/${q.id}"><td><a href="#/quotes/${q.id}">${esc(q.brand)}</a></td><td>${esc(works[q.workId]?.title)}</td><td><span class="req">${esc(q.request)}</span></td><td class="money">${usd(q.total)}</td><td><span class="pill ${s}">${esc(LABEL[s])}</span></td></tr>`; }).join('')}
+      ${quotes.map((q) => { const s = lic[q.licenseId]?.status || (q.conflicts?.length ? 'NEEDS_CHOICE' : q.blocked ? 'REFUSED' : 'QUOTED'); return `<tr data-href="#/quotes/${q.id}"><td><a href="#/quotes/${q.id}">${esc(q.brand)}</a></td><td>${esc(works[q.workId]?.title)}</td><td><span class="req">${esc(q.request)}</span></td><td class="money">${usd(q.total)}</td><td><span class="pill ${s}">${esc(LABEL[s])}</span></td></tr>`; }).join('')}
     </tbody></table>` : `<div class="empty"><h3>No requests yet</h3><p>Send a brand the request page for one of your works. Their request lands here, already priced.</p><a class="btn" href="#/request/spring-poster">Try the request page ${I.arrow}</a></div>`}
   </section>`;
   rowLinks();
@@ -479,7 +552,7 @@ const routes = [
   [/^#?\/?$/, () => viewWorks(), 'works', 'works'],
   [/^#\/works$/, () => viewWorks(), 'works', 'works'],
   [/^#\/works\/([\w-]+)$/, (m) => viewWork(m[1]), 'works', 'work'],
-  [/^#\/request\/([\w-]+)$/, (m) => viewRequest(m[1]), 'requests', 'request'],
+  [/^#\/request\/([\w-]+)$/, (m, p) => viewRequest(m[1], p), 'requests', 'request'],
   [/^#\/requests$/, () => viewRequests(), 'requests', 'requests'],
   [/^#\/quotes\/([\w-]+)$/, (m, p) => viewQuote(m[1], p), 'requests', 'quote'],
   [/^#\/licenses$/, () => viewLicenses(), 'licenses', 'licenses'],
