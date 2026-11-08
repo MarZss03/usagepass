@@ -83,7 +83,7 @@ function stateLine(lic) {
 // ---------- the license proof ----------
 
 function proofHTML({ id, title, brand, grants, notGranted = [], total, status }) {
-  const stamp = { ACTIVE: 'ACTIVE', REVOKED: 'VOID', DENIED: 'DECLINED', APPROVED: 'PAYING', PARTIALLY_PAID: 'PAYING', PAYMENT_HELD: 'HELD' }[status] || 'UNPAID';
+  const stamp = { ACTIVE: 'ACTIVE', REVOKED: 'VOID', DENIED: 'DECLINED', REFUSED: 'REFUSED', APPROVED: 'PAYING', PARTIALLY_PAID: 'PAYING', PAYMENT_HELD: 'HELD' }[status] || 'UNPAID';
   return `<div class="proof-wrap">
     <div class="proof" data-reg="${regFor(status)}" aria-label="License proof, ${esc(LABEL[status] || 'quoted')}">
       <div class="plate blue">${REG.replace('regmark', 'regmark tl')}${REG.replace('regmark', 'regmark br')}
@@ -104,6 +104,7 @@ const capFor = (s) => ({
   ACTIVE: 'In register: PayPal confirmed the payment, so the license is active.',
   REVOKED: 'Out of register for good: the payment was refunded or reversed.',
   DENIED: 'PayPal declined the payment. Nothing is licensed.',
+  REFUSED: 'Never goes to press: the request is for a use the team never licenses.',
 }[s] || 'The plates come into register when PayPal confirms the payment.');
 
 // Brings an on-screen proof to a new state; the move into register is the one authored moment.
@@ -219,7 +220,7 @@ async function viewWork(id) {
 }
 
 const EXAMPLES = [
-  'We want to run the poster as paid ads on Instagram and TikTok in Canada and the US for three months, edit the caption, and use it to train our image model.',
+  'We want to run it as paid ads on Instagram and TikTok in Canada and the US for three months, edit the caption, and use it to train our image model.',
   'Boost it on Facebook and YouTube in Canada for 30 days, exactly as it is.',
   'Put it on bus shelters in Toronto and on our website for the spring season, with our logo added.',
 ];
@@ -280,11 +281,11 @@ function termsHTML(q) {
   const refused = (l) => `<div class="term refused" data-ev="${esc(l.key)}" style="--i:${i}" tabindex="0"><strong><span class="label">${esc(l.label)}</span><span class="why">${esc(l.reason)}${l.evidence ? ` You asked: “${esc(l.evidence)}”` : ''}</span></strong><span class="flag">Not offered</span></div><div class="term-cite" style="--i:${i++}">${l.clauseId ? `<span class="mark">§${esc(l.clauseId)} ${esc(l.clauseTitle)}</span><br>${esc(l.clauseText)}` : ''}</div>`;
   const review = (l) => `<div class="term review" data-ev="${esc(l.key)}" style="--i:${i}" tabindex="0"><strong>${esc(l.label)}</strong><span class="flag">Team will confirm</span></div><div class="term-cite" style="--i:${i++}">${l.clauseId ? `<span class="mark">§${esc(l.clauseId)} ${esc(l.clauseTitle)}</span>` : 'Not on the rate card'}</div>`;
   return `<div class="terms">
-    <h2>What you can do</h2><h2 class="shoulder-h">From the rate card</h2>
+    <h2>${q.blocked ? 'What you asked for' : 'What you can do'}</h2><h2 class="shoulder-h">From the rate card</h2>
     ${q.lines.map(line).join('')}
     ${q.refused.map(refused).join('')}
     ${q.review.map(review).join('')}
-    <div class="total" style="--i:${i}"><span>Total</span><span>${usd(q.total)}</span></div><div></div>
+    <div class="total" style="--i:${i}"><span>${q.blocked ? 'Nothing to pay' : 'Total'}</span><span>${usd(q.total)}</span></div><div></div>
   </div>`;
 }
 
@@ -308,13 +309,14 @@ async function viewQuote(id, params) {
       <blockquote class="ask"><span class="who">${esc(q.brand)} asked</span>${markEvidence(q.request, ev)}</blockquote>
       ${aiLine(q)}
       ${params.get('cancelled') ? '<p class="notice">You left PayPal before paying. Nothing was charged; the quote is still here.</p>' : ''}
+      ${q.blocked ? `<p class="notice"><b>Not available.</b> ${esc(q.blocked)} No order can be created.</p>` : ''}
       ${termsHTML(q)}
       <div class="pay">${q.total > 0 ? `<button class="btn" data-pay>Pay ${usd(q.total)} with PayPal ${I.out}</button>` : ''}<p class="small muted">PayPal sandbox. ${w.payMode === 'split' ? 'One checkout pays each collaborator directly.' : 'Collaborators are paid by PayPal Payouts once the payment clears.'} Not legal advice; the license grants only the lines above.</p></div>
       <p class="error" data-err role="alert"></p>
     </section>
     <aside aria-label="License preview">
       ${stateLine(null)}
-      ${proofHTML({ id: q.id, title: w.title, brand: q.brand, grants: q.lines, notGranted: q.refused, total: q.total, status: 'QUOTED' })}
+      ${proofHTML({ id: q.id, title: w.title, brand: q.brand, grants: q.lines, notGranted: q.refused, total: q.total, status: q.blocked ? 'REFUSED' : 'QUOTED' })}
       ${ledgerHTML(w.creators, { payMode: w.payMode, total: q.total, live: false })}
     </aside>
   </div>

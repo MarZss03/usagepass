@@ -53,7 +53,7 @@ async function route(req, res, url) {
 
   if (req.method === 'GET' && p === '/api/health') {
     return json(res, 200, {
-      ai: env('GEMINI_API_KEY') ? { provider: 'gemini', model: env('GEMINI_MODEL', 'gemini-2.5-flash') } : { provider: 'offline' },
+      ai: env('GEMINI_API_KEY') ? { provider: 'gemini', model: env('GEMINI_MODEL', 'gemini-3.5-flash') } : { provider: 'offline' },
       paypal: Boolean(env('PAYPAL_CLIENT_ID')), webhook: Boolean(env('PAYPAL_WEBHOOK_ID')), environment: 'sandbox',
     });
   }

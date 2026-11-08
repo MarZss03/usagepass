@@ -4,13 +4,15 @@
 import { PLATFORMS } from './ratecard.mjs';
 import { env } from './paypal.mjs';
 
-const MODEL = () => env('GEMINI_MODEL', 'gemini-2.5-flash');
+// gemini-2.5-flash is closed to new keys; 3.5-flash at low thinking answers in under a second.
+// The backup model is tried when the first is busy (503/429) or slow.
+const MODEL = () => env('GEMINI_MODEL', 'gemini-3.5-flash');
+const BACKUP = () => env('GEMINI_BACKUP_MODEL', 'gemini-3.1-flash-lite');
 
 const S = (type, extra = {}) => ({ type, ...extra });
 const SCHEMA = S('OBJECT', {
   properties: {
     summary: S('STRING', { description: 'One plain sentence: what the brand wants to do with the work.' }),
-    summaryEvidence: S('STRING'),
     platforms: S('ARRAY', { items: S('STRING', { enum: Object.keys(PLATFORMS) }) }),
     platformsEvidence: S('STRING'),
     paid: S('BOOLEAN', { description: 'True if they will pay to promote it (ads, boosting, sponsored, paid social).' }),
@@ -41,7 +43,7 @@ const SCHEMA = S('OBJECT', {
       items: S('OBJECT', { properties: { question: S('STRING'), evidence: S('STRING') }, required: ['question', 'evidence'] }),
     }),
   },
-  required: ['summary', 'summaryEvidence', 'platforms', 'paid', 'durationDays', 'territories', 'edits', 'outOfHome', 'exclusive', 'excluded', 'unclear'],
+  required: ['summary', 'platforms', 'paid', 'durationDays', 'territories', 'edits', 'outOfHome', 'exclusive', 'excluded', 'unclear'],
 });
 
 function instructions(work) {
@@ -58,24 +60,48 @@ function instructions(work) {
   ].join('\n');
 }
 
-async function readWithGemini(work, request) {
-  const key = env('GEMINI_API_KEY');
-  if (!key) throw new Error('GEMINI_API_KEY is not set');
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL()}:generateContent`, {
+async function callGemini(model, work, request, { thinking = true, timeoutMs = 15000 } = {}) {
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-    signal: AbortSignal.timeout(25000),
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env('GEMINI_API_KEY') },
+    signal: AbortSignal.timeout(timeoutMs),
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: instructions(work) }] },
       contents: [{ role: 'user', parts: [{ text: `Work: ${work.title} (${work.medium}).\nRequest:\n"""${request}"""` }] }],
-      generationConfig: { responseMimeType: 'application/json', responseSchema: SCHEMA, temperature: 0 },
+      generationConfig: {
+        responseMimeType: 'application/json', responseSchema: SCHEMA, temperature: 0,
+        ...(thinking ? { thinkingConfig: { thinkingLevel: 'low' } } : {}),
+      },
     }),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(`Gemini ${res.status}: ${data.error?.message || 'request failed'}`);
-  const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('');
+  if (!res.ok) {
+    const msg = data.error?.message || 'request failed';
+    // Some models reject a thinking level; ask again without one.
+    if (res.status === 400 && thinking && /thinking/i.test(msg)) return callGemini(model, work, request, { thinking: false, timeoutMs });
+    throw Object.assign(new Error(`Gemini ${res.status}: ${msg}`), { retryable: [429, 500, 503].includes(res.status) });
+  }
+  const text = data.candidates?.[0]?.content?.parts?.filter((p) => !p.thought).map((p) => p.text || '').join('');
   if (!text) throw new Error(`Gemini returned no content (${data.candidates?.[0]?.finishReason || data.promptFeedback?.blockReason || 'unknown'})`);
   return JSON.parse(text);
+}
+
+// Primary model, one retry if it is busy, then the backup model. Returns the model that answered.
+async function readWithGemini(work, request) {
+  if (!env('GEMINI_API_KEY')) throw new Error('GEMINI_API_KEY is not set');
+  const attempts = [[MODEL(), 0], [MODEL(), 1200], [BACKUP(), 0]];
+  let last;
+  for (const [model, wait] of attempts) {
+    if (wait) await new Promise((r) => setTimeout(r, wait));
+    try {
+      return { model, raw: await callGemini(model, work, request) };
+    } catch (e) {
+      last = e;
+      const busy = e.retryable || e.name === 'TimeoutError' || e.name === 'AbortError';
+      if (!busy) break;
+    }
+  }
+  throw last;
 }
 
 // ---------- offline reader (no key, quota exhausted, or the API is down) ----------
@@ -174,8 +200,8 @@ function clean(work, request, it) {
 export async function readRequest(work, request) {
   const started = Date.now();
   try {
-    const raw = await readWithGemini(work, request);
-    return { source: 'gemini', model: MODEL(), ms: Date.now() - started, interpretation: clean(work, request, raw) };
+    const { model, raw } = await readWithGemini(work, request);
+    return { source: 'gemini', model, ms: Date.now() - started, interpretation: clean(work, request, raw) };
   } catch (e) {
     return { source: 'offline', reason: e.message, ms: Date.now() - started, interpretation: clean(work, request, readOffline(work, request)) };
   }

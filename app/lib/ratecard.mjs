@@ -130,6 +130,13 @@ export function priceRequest(work, it) {
   }
   for (const u of it.unclear || []) review.push({ key: `unclear-${review.length}`, label: u.question, evidence: u.evidence || null });
 
+  // An excluded *use* (training a model) drops that one line. An excluded *purpose*
+  // (advertising alcohol, tobacco, politics) taints the whole request, so nothing is sold.
+  const purpose = (it.excluded || []).map((x) => never.uses[x.useIndex]).find((u) => /advertis|tobacco|vap|gambl|alcohol|politic/i.test(u || ''));
+  if (purpose) {
+    return { lines: [], refused, review, total: 0, currency: 'USD', blocked: `The request is for ${purpose.toLowerCase()}, which this work is never licensed for, so none of it can be sold.`, wouldHaveBeen: lines };
+  }
+
   const total = lines.reduce((s, l) => s + l.amount, 0);
   return { lines, refused, review, total, currency: 'USD' };
 }
