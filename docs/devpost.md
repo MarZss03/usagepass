@@ -7,7 +7,7 @@
 **Links**
 - Live demo: https://usagepass.onrender.com (PayPal sandbox)
 - Code (MIT): https://github.com/MarZss03/usagepass
-- Video: _YouTube link_
+- Video: https://youtu.be/1CbzMCr0WIA
 
 **Built with:** PayPal Orders v2 (multi-payee), PayPal Payouts, PayPal Webhooks (signature verification), PayPal Payments v2 refunds, Google Gemini (structured output), Node.js, vanilla JavaScript, Render
 
